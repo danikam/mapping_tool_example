@@ -1,6 +1,6 @@
 # Mapping tool example
 
-This example code demonstrates how I currently combine a shapefile with a csv or xlsx file in python to produce a merged csv file.
+This example code demonstrates how I currently combine a shapefile with a csv or xlsx file in python to produce a merged shapefile.
 
 ## Setup
 
