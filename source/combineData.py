@@ -9,6 +9,7 @@ Created on Mon May 17 14:17:00 2023
 # Import needed modules
 import sys
 import os
+import argparse
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -34,7 +35,7 @@ def get_top_dir():
     top_dir = os.path.dirname(source_dir)
     return top_dir
     
-def mergeShapefile(data_df, shapefile_path, on):
+def mergeGeoFile(data_df, geo_file_path, on):
     '''
     Merges the input shapefile with the data in data_df
 
@@ -42,22 +43,22 @@ def mergeShapefile(data_df, shapefile_path, on):
     ----------
     data_df (pd.DataFrame): A pandas dataframe containing the data to be merged with the shapefile
 
-    shapefile_path (string): Path to the shapefile to be joined with the dataframe
+    geo_file_path (string): Path to the geospatial file (shapefile or geojson) to be joined with the dataframe
 
     Returns
     -------
     merged_Dataframe (pd.DataFrame): Joined dataframe
     '''
-    shapefile = gpd.read_file(shapefile_path)
+    file_gdf = gpd.read_file(geo_file_path)
     
     # Merge the dataframes based on the subregion name
-    merged_dataframe = shapefile.merge(data_df, on=on, how='left')
+    merged_dataframe = file_gdf.merge(data_df, on=on, how='left')
             
     return merged_dataframe
     
-def saveShapefile(file, name):
+def saveGeojson(file, name):
     '''
-    Saves a pandas dataframe as a shapefile
+    Saves a pandas dataframe as a geojson
 
     Parameters
     ----------
@@ -69,9 +70,9 @@ def saveShapefile(file, name):
     -------
     None
     '''
-    # Make sure the filename ends in .shp
-    if not name.endswith('.shp'):
-        print("ERROR: Filename for shapefile must end in '.shp'. File will not be saved.")
+    # Make sure the filename ends in .shp or .geojson
+    if not name.endswith('.geojson'):
+        print("ERROR: Filename for shapefile must end in '.geojson'. File will not be saved.")
         exit()
     # Make sure the full directory path to save to exists, otherwise create it
     dir = os.path.dirname(name)
@@ -131,19 +132,32 @@ def readData(data_path, data_type='xlsx', sheet_name=0, selected_columns='all', 
     return data_df
 
 def main():
-
+    parser = argparse.ArgumentParser(description="Merge eGRID data with a shapefile and save as GeoJSON.")
+    
     # Get the path to the top level of the Git repo
     top_dir = get_top_dir()
     
+    default_geo_file_path = f'{top_dir}/shapefile/eGRID_Subregions.shp'
+    default_output_file_path = f'{top_dir}/merged_geojson/egrid2020_subregions_merged.geojson'
+    
+    parser.add_argument("--geo_file_path", "-g", default=default_geo_file_path, help="Path to the geospatial file (shapefile or geojson) to be joined with the dataframe. Default is 'shapefile/eGRID_Subregions.shp'")
+    
+    parser.add_argument("--output_file_path", "-o", default=default_output_file_path, help="Path to the merged output geojson file. Default is 'merged_geojson/egrid2020_subregions_merged.geojson'")
+    
+    args = parser.parse_args()
+    
     data_path = f'{top_dir}/data/eGRID2021_data.xlsx'
+    geo_file_path = args.geo_file_path
     
     # Read in the data
     egrid_data = readData(data_path, 'xlsx', 'SRL21', ['SUBRGN', 'SRCO2EQA', 'SRC2ERTA'], ['SUBRGN', 'ZipSubregi'])
     
     # Merge the eGrids data in with the shapefile with subregion borders
-    merged_dataframe = mergeShapefile(egrid_data, f'{top_dir}/shapefile/eGRID_Subregions.shp', 'ZipSubregi')
+    merged_dataframe = mergeGeoFile(egrid_data, geo_file_path, 'ZipSubregi')
         
-    # Save the merged shapefile
-    saveShapefile(merged_dataframe, f'{top_dir}/merged_shapefile/egrid2020_subregions_merged.shp')
+    # Save the merged geodatafram to a geojson
+    saveGeojson(merged_dataframe, args.output_file_path)
     
-main()
+if __name__ == "__main__":
+    main()
+
